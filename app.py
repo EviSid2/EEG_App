@@ -410,7 +410,6 @@ def ai_coach_quick_reflection(score=None, participant=None, task=None, profile=N
         except Exception:
             calm_val = None
 
-    # --- build a compact, factual description for the model ---
     fact_lines = []
 
     if calm_val is not None:
@@ -525,10 +524,10 @@ def init_state():
 def reset_session_for_new_run():
     """Hard reset: clear data + personalization and force fresh widget keys."""
     for k in [
-        "df", "file_name", "summary",            # data
-        "style", "mode", "ai_coach",             # style 
+        "df", "file_name", "summary",            
+        "style", "mode", "ai_coach",              
         "participant_id", "task", "preferred_mode", "ai_coach_enabled",  
-        "profile",                                # full personalization dict
+        "profile",                                
     ]:
         st.session_state.pop(k, None)
 
@@ -569,11 +568,9 @@ def newest_csv(path: str) -> Optional[str]:
 
 @st.cache_data(show_spinner=False)
 def load_csv(file_or_buffer, skiprows: int = 0, cache_buster: float | None = None):
-    # Accept both file paths and file-like objects
     if isinstance(file_or_buffer, (str, bytes, io.IOBase)):
         src = file_or_buffer
     else:
-        # Streamlit UploadedFile behaves like a buffer
         src = file_or_buffer
 
     read_kwargs = dict(
@@ -583,15 +580,12 @@ def load_csv(file_or_buffer, skiprows: int = 0, cache_buster: float | None = Non
     skiprows=skiprows,
     )
 
-    # Try reading, falling back through a few common patterns
     try:
         df = pd.read_csv(src, **read_kwargs)
     except Exception:
-        # Some BrainFlow files are semicolon-separated on DE locales
         try:
             df = pd.read_csv(src, engine="python", sep=";")
         except Exception:
-            # Last resort: comma
             df = pd.read_csv(src, engine="python", sep=",")
 
     # Drop fully empty columns
@@ -1075,11 +1069,9 @@ if page == "Start":
             unsafe_allow_html=True,
         )
 
-        # here we branch: study vs normal behaviour
         if STUDY_MODE:
             render_start_body_study()
         else:
-            # original caption text + original behaviour
             st.markdown(
                 "<div class='caption'>When you’re ready, press below to view your insights and personalized feedback.</div>",
                 unsafe_allow_html=True,
@@ -1091,7 +1083,11 @@ if page == "Start":
         up = st.file_uploader("Upload OpenBCI CSV", type=["csv"])
         if up is not None:
             if st.button("Analyze uploaded file"):
-                # each upload is treated as new
+                st.session_state.pop("scenario_id", None)  
+                st.session_state["task"] = ""              
+                if "profile" in st.session_state:
+                    st.session_state["profile"]["task"] = "" 
+
                 df = load_csv(up, cache_buster=time.time())
                 st.session_state["df"] = df
                 st.session_state["file_name"] = getattr(up, "name", "uploaded.csv")
@@ -1102,7 +1098,7 @@ if page == "Start":
                 )
                 st.session_state["page"] = "Personalization"
                 st.rerun()
-
+                
 # -----------------------------
 # Personalization Page
 # -----------------------------
